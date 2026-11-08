@@ -62,7 +62,61 @@ export const registerUser = async (req, res) => {
 };
 
 export const logoutUser = (req, res) => {
-  req.session.destroy(() => res.redirect("/login"));
+  req.session.destroy(error => {
+    if (error) console.error("Logout failed:", error);
+    res.clearCookie("connect.sid");
+    res.redirect("/login");
+  });
+};
+
+export const profilePage = async (req, res) => {
+  const user = await User.findByPk(req.session.userId, {
+    attributes: ["id", "name", "email", "role", "active", "createdAt"]
+  });
+  if (!user || !user.active) {
+    req.session.destroy(() => res.redirect("/login"));
+    return;
+  }
+  res.render("profile", { title: "My Profile", profile: user });
+};
+
+export const updateProfile = async (req, res) => {
+  const name = typeof req.body.name === "string" ? req.body.name.trim() : "";
+  const email = typeof req.body.email === "string" ? req.body.email.trim().toLowerCase() : "";
+  if (!name || name.length > 120 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    req.flash("error_msg", "Enter a valid name and email address.");
+    return res.redirect("/profile");
+  }
+  const user = await User.findByPk(req.session.userId);
+  if (!user || !user.active) {
+    req.flash("error_msg", "Your account is no longer available.");
+    return res.redirect("/login");
+  }
+  try {
+    await user.update({ name, email });
+    req.session.userName = user.name;
+    req.flash("success_msg", "Profile updated successfully.");
+  } catch (error) {
+    console.error("Profile update failed:", error);
+    req.flash("error_msg", error.name === "SequelizeUniqueConstraintError" ? "That email is already registered." : "Could not update your profile.");
+  }
+  res.redirect("/profile");
+};
+
+export const changeOwnPassword = async (req, res) => {
+  const { currentPassword, password, confirmPassword } = req.body;
+  if (typeof currentPassword !== "string" || typeof password !== "string" || password.length < 6 || password !== confirmPassword) {
+    req.flash("error_msg", "New passwords must match and contain at least 6 characters.");
+    return res.redirect("/profile");
+  }
+  const user = await User.findByPk(req.session.userId);
+  if (!user || !user.active || !(await verifyPassword(currentPassword, user.password))) {
+    req.flash("error_msg", "The current password is incorrect.");
+    return res.redirect("/profile");
+  }
+  await user.update({ password: await hashPassword(password) });
+  req.flash("success_msg", "Password changed successfully.");
+  res.redirect("/profile");
 };
 
 export const usersPage = async (req, res) => res.render("users", { title: "User Management", users: await User.findAll({ order: [["name", "ASC"]] }) });

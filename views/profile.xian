@@ -1,0 +1,41 @@
+{{> head}}
+<body>
+<div class="min-h-screen md:flex">
+  <aside class="sidebar md:w-60 p-5 shrink-0">
+    <a class="app-brand" href="/dashboard"><span class="brand-mark">R</span><span>Resto<strong>Flow</strong></span><small>Account settings</small></a>
+    <nav class="space-y-1">
+      <a class="block rounded px-3 py-2" href="/dashboard">Overview</a>
+      <a class="block rounded px-3 py-2 active" href="/profile">My profile</a>
+      <a class="block rounded px-3 py-2" href="/orders">{{#if isCustomer}}My orders{{else}}Orders{{/if}}</a>
+      <a class="block rounded px-3 py-2 mt-8 text-red-300" href="/logout">Log out</a>
+    </nav>
+  </aside>
+  <main class="flex-1 p-5 md:p-8 max-w-4xl">
+    {{#if success_msg}}<div class="notice notice-success">{{success_msg}}</div>{{/if}}
+    {{#if error_msg}}<div class="notice notice-error">{{error_msg}}</div>{{/if}}
+    <div class="welcome-bar">Welcome back, {{profile.name}}.</div>
+    <div class="page-heading"><div><p class="eyebrow">ACCOUNT SETTINGS</p><h1>My profile</h1><p class="muted">Keep your account details and password up to date.</p></div></div>
+    <div class="grid gap-5 lg:grid-cols-2">
+      <section class="card p-5">
+        <h2 class="font-bold text-xl">Personal details</h2>
+        <p class="muted mb-5">Your role is <strong>{{profile.role}}</strong>.</p>
+        <form method="post" action="/profile" class="grid gap-4">
+          <label>Full name<input class="field mt-1" name="name" value="{{profile.name}}" maxlength="120" required></label>
+          <label>Email address<input class="field mt-1" name="email" type="email" value="{{profile.email}}" required></label>
+          <button class="btn btn-primary" type="submit">Save profile</button>
+        </form>
+      </section>
+      <section class="card p-5">
+        <h2 class="font-bold text-xl">Change password</h2>
+        <p class="muted mb-5">Use at least 6 characters and do not reuse an old password.</p>
+        <form method="post" action="/profile/password" class="grid gap-4">
+          <label>Current password<input class="field mt-1" name="currentPassword" type="password" autocomplete="current-password" required></label>
+          <label>New password<input class="field mt-1" name="password" type="password" minlength="6" autocomplete="new-password" required></label>
+          <label>Confirm new password<input class="field mt-1" name="confirmPassword" type="password" minlength="6" autocomplete="new-password" required></label>
+          <button class="btn btn-primary" type="submit">Change password</button>
+        </form>
+      </section>
+    </div>
+  </main>
+</div>
+{{> footer}}

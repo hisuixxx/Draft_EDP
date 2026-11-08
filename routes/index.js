@@ -33,7 +33,7 @@ const router = express.Router();
 const asyncHandler = handler => (req, res, next) => Promise.resolve(handler(req, res, next)).catch(next);
 router.get("/", asyncHandler(homePage));
 
-import { loginPage, registerPage, forgotPasswordPage, loginUser, registerUser, logoutUser, usersPage, createUser, deleteUser, changeUserPassword, updateUserRole, toggleUserStatus } from "../controllers/authController.js";
+import { loginPage, registerPage, forgotPasswordPage, loginUser, registerUser, logoutUser, profilePage, updateProfile, changeOwnPassword, usersPage, createUser, deleteUser, changeUserPassword, updateUserRole, toggleUserStatus } from "../controllers/authController.js";
 
 router.get("/login", loginPage);
 router.post("/login", asyncHandler(loginUser));
@@ -41,6 +41,9 @@ router.get("/register", registerPage);
 router.post("/register", asyncHandler(registerUser));
 router.get("/forgot-password", forgotPasswordPage);
 router.get("/dashboard", requireAuth, asyncHandler(dashboardPage));
+router.get("/profile", requireAuth, asyncHandler(profilePage));
+router.post("/profile", requireAuth, asyncHandler(updateProfile));
+router.post("/profile/password", requireAuth, asyncHandler(changeOwnPassword));
 router.get("/menu", asyncHandler((req, res, next) => req.session.userRole === "admin" ? res.redirect("/manage/menu") : homePage(req, res, next)));
 router.get("/manage/menu", requireAuth, requireAdmin, asyncHandler(menuPage));
 router.post("/manage/menu", requireAuth, requireAdmin, menuImageUpload.single("image"), asyncHandler(menuCreate));

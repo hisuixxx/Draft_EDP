@@ -5,6 +5,7 @@
     <a class="app-brand" href="/dashboard"><span class="brand-mark">R</span><span>Resto<strong>Flow</strong></span><small>Restaurant ordering</small></a>
     <nav class="space-y-1">
       <a class="block rounded px-3 py-2" href="/dashboard">Overview</a>
+      <a class="block rounded px-3 py-2" href="/profile">My profile</a>
       <a class="block rounded px-3 py-2" href="/orders">{{#if isCustomer}}My orders{{else}}Orders{{/if}}</a>
       {{#if isStaff}}<a class="block rounded px-3 py-2" href="/orders/new">New order</a>{{/if}}
       {{#if isAdmin}}<a class="block rounded px-3 py-2" href="/manage/menu">Menu management</a><a class="block rounded px-3 py-2" href="/reports">Reports</a><a class="block rounded px-3 py-2" href="/users">Users</a>{{/if}}
