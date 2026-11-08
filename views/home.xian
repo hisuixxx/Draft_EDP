@@ -1,0 +1,23 @@
+{{> head}}
+<body class="restaurant-page">
+  <header class="public-header"><div class="public-header-inner"><a class="brand" href="/menu"><span class="brand-mark">R</span><span>Resto<strong>Flow</strong></span></a><nav><a href="#menu">Menu</a>{{#if isCustomer}}<a href="/orders">My orders</a><a href="/logout">Log out</a>{{else}}<a href="/login">Log in</a><a class="btn btn-primary" href="/register">Create account</a>{{/if}}</nav></div></header>
+  <main>
+    <section class="hero"><div class="hero-content"><p class="eyebrow">WELCOME TO RESTOFLOW</p><h1>Good food,<br><em>beautifully</em><br>served.</h1><p>Freshly prepared favorites, easy ordering, and warm service — all in one place.</p><div class="hero-actions"><a class="btn btn-primary" href="#menu">Explore the menu <span>→</span></a></div></div><div class="hero-visual"><div class="hero-glow"></div><div class="hero-plate"><span>🍛</span></div><div class="hero-note hero-note-top">✦ <strong>Fresh<br>made</strong></div><div class="hero-note hero-note-bottom"><strong>Simple.</strong><br>Delicious.</div></div></section>
+    <section id="how-it-works" class="service-strip"><div><span class="service-icon">01</span><div><strong>Choose your favorites</strong><small>Browse our fresh menu</small></div></div><div><span class="service-icon">02</span><div><strong>Build your order</strong><small>Customize your cart</small></div></div><div><span class="service-icon">03</span><div><strong>Enjoy the moment</strong><small>We prepare it with care</small></div></div></section>
+    <section id="menu" class="menu-section"><div class="section-heading"><div><p class="eyebrow">OUR MENU</p><h2>Fresh favorites</h2><p class="section-subtitle">Something delicious for every kind of day.</p></div><div class="menu-filters"><label class="search-field"><span>⌕</span><input id="menu-search" class="field" placeholder="Search food or drinks..." aria-label="Search menu"></label><select id="category-filter" class="field"><option value="">All Items</option>{{#each categories}}<option value="{{this}}">{{this}}</option>{{/each}}</select></div></div>
+      <div id="menu-grid" class="menu-grid">{{#each items}}<article class="menu-card" data-name="{{name}}" data-category="{{category}}" data-description="{{description}}"><div class="menu-image">{{#if image}}<img src="{{image}}" alt="{{name}}">{{else}}<span>🍽</span>{{/if}}</div><div class="menu-card-body"><span class="category-label">{{category}}</span><h3>{{name}}</h3><p>{{description}}</p><div class="menu-card-footer"><strong>₱{{price}}</strong><button class="btn btn-primary add-to-cart" data-id="{{id}}" data-name="{{name}}" data-price="{{price}}">Add to cart</button></div></div></article>{{else}}<p class="empty-state">No menu items found.</p>{{/each}}</div><p id="no-results" class="empty-state hidden">No menu items found.</p>
+    </section>
+  </main>
+  <footer class="public-footer">RestoFlow Restaurant · Fresh food, warm service.</footer>
+  <script>
+    const cartKey = "restoflow-cart";
+    const cart = JSON.parse(localStorage.getItem(cartKey) || localStorage.getItem("xianfire-cart") || "{}");
+    document.querySelectorAll(".add-to-cart").forEach(button => button.addEventListener("click", () => {
+      const item = cart[button.dataset.id] || { name: button.dataset.name, price: Number(button.dataset.price), quantity: 0 };
+      item.quantity += 1; cart[button.dataset.id] = item; localStorage.setItem(cartKey, JSON.stringify(cart)); button.textContent = "Added"; setTimeout(() => button.textContent = "Add to cart", 1200);
+    }));
+    const filter = () => { const search = document.querySelector("#menu-search").value.toLowerCase(); const category = document.querySelector("#category-filter").value.toLowerCase(); let shown = 0;
+      document.querySelectorAll(".menu-card").forEach(card => { const matches = (!search || `${card.dataset.name} ${card.dataset.category} ${card.dataset.description}`.toLowerCase().includes(search)) && (!category || card.dataset.category.toLowerCase() === category); card.classList.toggle("hidden", !matches); if (matches) shown += 1; }); document.querySelector("#no-results").classList.toggle("hidden", shown !== 0); };
+    document.querySelector("#menu-search").addEventListener("input", filter); document.querySelector("#category-filter").addEventListener("change", filter);
+  </script>
+{{> footer}}

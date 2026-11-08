@@ -1,0 +1,38 @@
+{{> head}}
+<body>
+<div class="min-h-screen md:flex">
+  <aside class="sidebar md:w-60 p-5 shrink-0">
+    <a class="app-brand" href="/dashboard"><span class="brand-mark">R</span><span>Resto<strong>Flow</strong></span><small>Admin workspace</small></a>
+    <nav>
+      <a class="block rounded px-3 py-2" href="/dashboard">Overview</a>
+      <a class="block rounded px-3 py-2" href="/orders">Orders</a>
+      <a class="block rounded px-3 py-2" href="/manage/menu">Products</a>
+      <a class="block rounded px-3 py-2 active" href="/users">Users</a>
+      <a class="block rounded px-3 py-2" href="/reports">Reports</a>
+      <a class="block rounded px-3 py-2 mt-8 text-red-300" href="/logout">Log out</a>
+    </nav>
+  </aside>
+  <main class="flex-1 p-5 md:p-8 max-w-7xl">
+    <div class="welcome-bar">Welcome back, {{currentUser}}.</div>
+    {{#if success_msg}}<div class="notice notice-success">{{success_msg}}</div>{{/if}}
+    {{#if error_msg}}<div class="notice notice-error">{{error_msg}}</div>{{/if}}
+    <div class="mb-7"><p class="eyebrow">ACCOUNT CONTROL</p><h1>Users</h1><p class="muted">Create accounts and manage access for every team member.</p></div>
+    <div class="card p-5 mb-6">
+      <h2 class="font-bold mb-1">Create an account</h2><p class="muted mb-4">Customers can also register from the public sign-up page.</p>
+      <form method="post" action="/users" class="grid md:grid-cols-5 gap-3">
+        <input class="field" name="name" placeholder="Full name" required>
+        <input class="field" name="email" type="email" placeholder="Email address" required>
+        <input class="field" name="password" type="password" minlength="6" placeholder="Password (6+ characters)" required>
+        <select class="field" name="role" required><option value="staff">Staff</option><option value="admin">Admin</option><option value="customer">Customer</option></select>
+        <button class="btn btn-primary" type="submit">Create account</button>
+      </form>
+    </div>
+    <div class="card overflow-hidden">
+      <div class="p-5 border-b border-stone-100"><p class="eyebrow">ALL ACCOUNTS</p><h2 class="font-bold">Access and activity controls</h2></div>
+      <div class="overflow-x-auto"><table class="w-full text-left text-sm"><thead><tr><th class="p-3">User</th><th class="p-3">Role</th><th class="p-3">Status</th><th class="p-3">Actions</th></tr></thead><tbody>
+      {{#each users}}<tr class="border-t align-top"><td class="p-3"><strong>{{name}}</strong><div class="text-xs text-slate-500">{{email}}</div></td><td class="p-3"><form method="post" action="/users/{{id}}/role"><select class="field text-xs" name="role" onchange="this.form.submit()"><option value="admin" {{#if (eq role "admin")}}selected{{/if}}>Admin</option><option value="staff" {{#if (eq role "staff")}}selected{{/if}}>Staff</option><option value="customer" {{#if (eq role "customer")}}selected{{/if}}>Customer</option></select></form></td><td class="p-3"><span class="status-badge">{{#if active}}Active{{else}}Inactive{{/if}}</span></td><td class="p-3 flex flex-wrap gap-2"><details><summary class="text-emerald-800 cursor-pointer font-semibold">Password</summary><form method="post" action="/users/{{id}}/password" class="card p-3 mt-1 grid gap-2"><input class="field" name="password" type="password" minlength="6" placeholder="New password" required><input class="field" name="confirmPassword" type="password" placeholder="Confirm password" required><button class="btn btn-primary" type="submit">Update password</button></form></details><form method="post" action="/users/{{id}}/status"><button class="text-emerald-800 font-semibold" type="submit">{{#if active}}Deactivate{{else}}Activate{{/if}}</button></form><form method="post" action="/users/{{id}}/delete" onsubmit="return confirm('Delete this user?')"><button class="text-red-700 font-semibold" type="submit">Delete</button></form></td></tr>{{else}}<tr><td class="p-5 text-slate-500" colspan="4">No user accounts found.</td></tr>{{/each}}
+      </tbody></table></div>
+    </div>
+  </main>
+</div>
+{{> footer}}

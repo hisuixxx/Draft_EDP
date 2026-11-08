@@ -1,0 +1,21 @@
+{{> head}}
+<body>
+<div class="min-h-screen md:flex">
+  <aside class="sidebar md:w-60 p-5 shrink-0">
+    <a class="app-brand" href="/dashboard"><span class="brand-mark">R</span><span>Resto<strong>Flow</strong></span><small>Restaurant ordering</small></a>
+    <nav class="space-y-1">
+      <a class="block rounded px-3 py-2" href="/dashboard">Overview</a>
+      <a class="block rounded px-3 py-2" href="/orders">{{#if isCustomer}}My orders{{else}}Orders{{/if}}</a>
+      {{#if isStaff}}<a class="block rounded px-3 py-2" href="/orders/new">New order</a>{{/if}}
+      {{#if isAdmin}}<a class="block rounded px-3 py-2" href="/manage/menu">Menu management</a><a class="block rounded px-3 py-2" href="/reports">Reports</a><a class="block rounded px-3 py-2" href="/users">Users</a>{{/if}}
+      {{#if isCustomer}}<a class="block rounded px-3 py-2" href="/menu">Browse menu</a>{{/if}}
+      <a class="block rounded px-3 py-2 mt-8 text-red-300" href="/logout">Log out</a>
+    </nav>
+  </aside>
+  <main class="flex-1 p-5 md:p-8 max-w-7xl">
+    {{#if success_msg}}<div class="mb-5 rounded bg-green-100 px-4 py-3 text-green-800">{{success_msg}}</div>{{/if}}
+    {{#if error_msg}}<div class="mb-5 rounded bg-red-100 px-4 py-3 text-red-800">{{error_msg}}</div>{{/if}}
+    {{{body}}}
+  </main>
+</div>
+{{> footer}}

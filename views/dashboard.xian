@@ -1,0 +1,36 @@
+{{> head}}
+<body>
+<div class="min-h-screen md:flex">
+  <aside class="sidebar md:w-60 p-5 shrink-0">
+    <a class="app-brand" href="/dashboard"><span class="brand-mark">R</span><span>Resto<strong>Flow</strong></span><small>{{#if isAdmin}}Admin workspace{{else if isCustomer}}Customer workspace{{else}}Service workspace{{/if}}</small></a>
+    <nav>
+      <a class="block rounded px-3 py-2 active" href="/dashboard">Overview</a>
+      <a class="block rounded px-3 py-2" href="/orders">Orders</a>
+      {{#if isStaff}}<a class="block rounded px-3 py-2" href="/orders/new">New order</a>{{/if}}
+      {{#if isAdmin}}<a class="block rounded px-3 py-2" href="/manage/menu">Menu management</a><a class="block rounded px-3 py-2" href="/reports">Reports</a><a class="block rounded px-3 py-2" href="/users">Users</a>{{/if}}
+      {{#if isCustomer}}<a class="block rounded px-3 py-2" href="/menu">Browse menu</a>{{/if}}
+      <a class="block rounded px-3 py-2 mt-8 text-red-300" href="/logout">Log out</a>
+    </nav>
+  </aside>
+  <main class="flex-1 p-5 md:p-8 max-w-7xl">
+    <div class="welcome-bar">Welcome back, {{currentUser}}.</div>
+    {{#if success_msg}}<div class="notice notice-success">{{success_msg}}</div>{{/if}}
+    {{#if error_msg}}<div class="notice notice-error">{{error_msg}}</div>{{/if}}
+    <div class="flex justify-between items-end gap-4 mb-7">
+      <div><p class="eyebrow">{{#if isAdmin}}BUSINESS OVERVIEW{{else if isCustomer}}YOUR ORDER OVERVIEW{{else}}SERVICE OVERVIEW{{/if}}</p><h1>{{#if isAdmin}}Good morning, {{currentUser}}{{else if isCustomer}}Welcome back, {{currentUser}}{{else}}Keep service moving{{/if}}</h1><p class="muted">{{#if isAdmin}}Manage products, users, orders, and restaurant activity.{{else if isCustomer}}Track your orders and discover something delicious.{{else}}Process incoming orders and keep guests informed.{{/if}}</p></div>
+      {{#if isCustomer}}<a href="/menu" class="btn btn-primary">Browse menu</a>{{else}}<a href="/orders/new" class="btn btn-primary">+ New order</a>{{/if}}
+    </div>
+    <div class="grid grid-cols-2 lg:grid-cols-6 gap-4 mb-7">
+      <div class="card p-4"><p class="text-sm text-slate-500">Total orders</p><p class="text-2xl font-bold">{{counts.total}}</p></div>
+      <div class="card p-4"><p class="text-sm text-slate-500">Pending</p><p class="text-2xl font-bold">{{counts.Pending}}</p></div>
+      <div class="card p-4"><p class="text-sm text-slate-500">Preparing</p><p class="text-2xl font-bold">{{counts.Preparing}}</p></div>
+      <div class="card p-4"><p class="text-sm text-slate-500">Ready</p><p class="text-2xl font-bold">{{counts.Ready}}</p></div>
+      {{#if isAdmin}}<div class="card p-4"><p class="text-sm text-slate-500">Menu items</p><p class="text-2xl font-bold">{{menuCount}}</p></div><div class="card p-4"><p class="text-sm text-slate-500">Today's sales</p><p class="text-2xl font-bold">₱{{sales}}</p></div>{{else if isCustomer}}<div class="card p-4"><p class="text-sm text-slate-500">Completed</p><p class="text-2xl font-bold">{{counts.Completed}}</p></div><div class="card p-4"><p class="text-sm text-slate-500">Cancelled</p><p class="text-2xl font-bold">{{counts.Cancelled}}</p></div>{{/if}}
+    </div>
+    <div class="card overflow-hidden">
+      <div class="p-5 border-b border-stone-100 flex justify-between items-center"><div><p class="eyebrow">{{#if isCustomer}}ORDER HISTORY{{else}}LIVE QUEUE{{/if}}</p><h2 class="font-bold">{{#if isAdmin}}Recently placed orders{{else if isCustomer}}Your recent orders{{else}}Incoming orders{{/if}}</h2></div><a class="text-sm font-bold text-emerald-800" href="/orders">View all →</a></div>
+      <div class="overflow-x-auto"><table class="w-full text-left text-sm"><thead><tr><th class="p-3">Order</th><th class="p-3">Customer</th><th class="p-3">Type</th><th class="p-3">Status</th><th class="p-3 text-right">Total</th></tr></thead><tbody>{{#each recent}}<tr class="border-t"><td class="p-3 font-medium">{{orderNumber}}</td><td class="p-3">{{customerName}}</td><td class="p-3">{{orderType}}</td><td class="p-3"><span class="status-badge">{{status}}</span></td><td class="p-3 text-right">₱{{total}}</td></tr>{{else}}<tr><td class="p-5 text-slate-500" colspan="5">No orders yet.</td></tr>{{/each}}</tbody></table></div>
+    </div>
+  </main>
+</div>
+{{> footer}}

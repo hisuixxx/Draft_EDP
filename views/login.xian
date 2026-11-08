@@ -1,0 +1,29 @@
+{{> head}}
+<body class="auth-page">
+  <div class="auth-shell">
+    <a class="brand auth-brand" href="/menu"><span class="brand-mark">R</span><span>Resto<strong>Flow</strong></span></a>
+    <div class="auth-card">
+      {{#if error_msg}}<div class="notice notice-error">{{error_msg}}</div>{{/if}}
+      <p class="eyebrow">WELCOME BACK</p>
+      <h1>Sign in to RestoFlow</h1>
+      <p class="muted">Continue your order or manage today's service.</p>
+      <form method="POST" action="/login" class="auth-form" id="login-form">
+        <label>Email
+          <input type="email" name="email" placeholder="you@example.com" class="field" autocomplete="username" required pattern="^[^@\s]+@[^@\s]+\.[^@\s]+$" />
+        </label>
+        <label>Password
+          <input type="password" name="password" placeholder="Your password" class="field" autocomplete="current-password" required />
+        </label>
+        <button type="submit" class="btn btn-primary" id="login-submit">Sign in <span>→</span></button>
+      </form>
+      <p class="auth-switch">New to RestoFlow? <a href="/register">Create an account</a></p>
+    </div>
+  </div>
+  <script>
+    const loginForm = document.querySelector("#login-form");
+    const loginSubmit = document.querySelector("#login-submit");
+    const updateLoginState = () => { loginSubmit.disabled = !loginForm.checkValidity(); };
+    loginForm.addEventListener("input", updateLoginState);
+    updateLoginState();
+  </script>
+{{> footer }}

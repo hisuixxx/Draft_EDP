@@ -1,0 +1,13 @@
+<footer class="mt-8 py-4 text-center text-gray-500 text-sm">
+  &copy; 2026 XianFire — Fresh food, warm service.
+</footer>
+<script>
+  document.querySelectorAll(".notice").forEach(notice => {
+    const close = document.createElement("button");
+    close.type = "button"; close.textContent = "×"; close.className = "float-right text-lg leading-none";
+    close.setAttribute("aria-label", "Dismiss notification"); close.onclick = () => notice.remove();
+    notice.appendChild(close); setTimeout(() => notice.remove(), 4500);
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,77 @@
+{{> head}}
+<body>
+<div class="min-h-screen md:flex">
+  <aside class="sidebar md:w-60 p-5 shrink-0">
+    <a class="app-brand" href="/dashboard"><span class="brand-mark">R</span><span>Resto<strong>Flow</strong></span><small>Restaurant ordering</small></a>
+    <nav class="space-y-1">
+      <a class="block rounded px-3 py-2" href="{{#if isCustomer}}/menu{{else}}/dashboard{{/if}}">Back</a>
+      <a class="block rounded px-3 py-2" href="/orders">Orders</a>
+      <a class="block rounded px-3 py-2 mt-8 text-red-300" href="/logout">Log out</a>
+    </nav>
+  </aside>
+  <main class="flex-1 p-5 md:p-8 max-w-6xl">
+    {{#if success_msg}}<div class="notice notice-success">{{success_msg}}</div>{{/if}}
+    {{#if error_msg}}<div class="notice notice-error">{{error_msg}}</div>{{/if}}
+    <div class="welcome-bar">{{#if isCustomer}}Ready when you are, {{currentUser}}.{{else}}Welcome Back, {{currentUser}}!{{/if}}</div>
+    <div class="page-heading"><div><p class="eyebrow">ORDER FLOW</p><h1>{{#if isCustomer}}Checkout{{else}}Create new order{{/if}}</h1><p class="muted">Review the details below before sending this order to the kitchen.</p></div></div>
+    <form method="post" action="/orders" class="checkout-layout">
+      <input id="submission-key" type="hidden" name="submissionKey">
+      <section class="checkout-main">
+        <div class="card checkout-panel">
+          <div class="panel-heading"><span class="step-number">1</span><div><h2>Order details</h2><p class="muted">Tell us how this order should be prepared.</p></div></div>
+          <div class="form-grid">
+            <label>Customer name<input class="field mt-1" name="customerName" value="{{#if isCustomer}}{{currentUser}}{{/if}}" {{#if isCustomer}}readonly{{/if}} required></label>
+            <label>Order type<select id="order-type" class="field mt-1" name="orderType"><option>Dine-in</option><option>Takeout</option><option>Pickup</option></select></label>
+            <label id="table-field">Table number<input class="field mt-1" name="tableNumber" placeholder="Required for dine-in"></label>
+            <label>Payment method<select class="field mt-1" name="paymentMethod"><option>Cash</option><option>GCash</option></select></label>
+            <label>Amount paid<input class="field mt-1" name="amountPaid" type="number" step=".01" min="0" value="0"></label>
+          </div>
+        </div>
+        <div class="card checkout-panel">
+          <div class="panel-heading"><span class="step-number">2</span><div><h2>Select items</h2><p class="muted">Choose available items and adjust quantities.</p></div></div>
+          <p id="checkout-error" class="notice notice-error hidden">Select at least one menu item to continue.</p>
+          <div class="order-items">{{#each items}}<label class="order-item" data-item-id="{{id}}" data-price="{{price}}"><input type="checkbox" name="itemIds" value="{{id}}">{{#if image}}<img class="order-item-image" src="{{image}}" alt="" loading="lazy">{{/if}}<span class="order-item-info"><strong>{{name}}</strong><small>{{category}} · ₱{{price}}</small></span><span class="quantity-control"><button type="button" class="quantity-minus" aria-label="Decrease quantity">−</button><input class="quantity-input" type="number" min="1" value="1" name="quantities[{{id}}]"><button type="button" class="quantity-plus" aria-label="Increase quantity">+</button></span></label>{{else}}<p class="empty-state">No available menu items.</p>{{/each}}</div>
+        </div>
+      </section>
+      <aside class="checkout-summary card">
+        <div class="panel-heading"><span class="step-number">3</span><div><h2>Order summary</h2><p class="muted">Your selected items appear here.</p></div></div>
+        <div id="summary-items"><p class="muted">Select an item to begin.</p></div>
+        <div class="summary-total"><span>Total</span><strong id="summary-total">₱0.00</strong></div>
+        <button class="btn btn-primary place-order" type="submit">{{#if isCustomer}}Place order{{else}}Save order{{/if}} <span>→</span></button>
+      </aside>
+    </form>
+  </main>
+</div>
+<script>
+  const cartKey = "restoflow-cart";
+  const saved = JSON.parse(localStorage.getItem(cartKey) || localStorage.getItem("xianfire-cart") || "{}");
+  document.querySelector("#submission-key").value = crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
+  const summary = document.querySelector("#summary-items");
+  const total = document.querySelector("#summary-total");
+  const renderSummary = () => {
+    let amount = 0; const lines = [];
+    document.querySelectorAll(".order-item").forEach(row => {
+      const checkbox = row.querySelector("input[type=checkbox]"); const quantity = row.querySelector(".quantity-input");
+      if (!checkbox.checked) return;
+      const price = Number(row.dataset.price); const subtotal = price * Number(quantity.value || 1); amount += subtotal;
+      lines.push(`<div class="summary-line"><span>${row.querySelector("strong").textContent} <small>× ${quantity.value}</small></span><strong>₱${subtotal.toFixed(2)}</strong></div>`);
+    });
+    summary.innerHTML = lines.length ? lines.join("") : '<p class="muted">Select an item to begin.</p>';
+    total.textContent = `₱${amount.toFixed(2)}`;
+  };
+  Object.entries(saved).forEach(([id, item]) => { const row = document.querySelector(`[data-item-id="${id}"]`); if (!row) return; row.querySelector("input[type=checkbox]").checked = true; row.querySelector(".quantity-input").value = item.quantity; });
+  document.querySelectorAll(".order-item").forEach(row => {
+    const checkbox = row.querySelector("input[type=checkbox]"); const quantity = row.querySelector(".quantity-input");
+    checkbox.addEventListener("change", renderSummary);
+    row.querySelector(".quantity-minus").addEventListener("click", () => { quantity.value = Math.max(1, Number(quantity.value) - 1); checkbox.checked = true; renderSummary(); });
+    row.querySelector(".quantity-plus").addEventListener("click", () => { quantity.value = Number(quantity.value) + 1; checkbox.checked = true; renderSummary(); });
+    quantity.addEventListener("input", renderSummary);
+  });
+  const form = document.querySelector(".checkout-layout"); const submitButton = document.querySelector(".place-order");
+  const checkoutError = document.querySelector("#checkout-error");
+  form.addEventListener("submit", event => { if (!document.querySelector("input[name=itemIds]:checked")) { event.preventDefault(); checkoutError.classList.remove("hidden"); checkoutError.scrollIntoView({ behavior: "smooth", block: "center" }); return; } submitButton.disabled = true; submitButton.textContent = "Sending order…"; });
+  const orderType = document.querySelector("#order-type"); const tableField = document.querySelector("#table-field");
+  const updateTableVisibility = () => tableField.classList.toggle("hidden", orderType.value !== "Dine-in");
+  orderType.addEventListener("change", updateTableVisibility); updateTableVisibility(); renderSummary();
+</script>
+{{> footer}}

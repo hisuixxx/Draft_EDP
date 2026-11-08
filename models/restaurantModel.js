@@ -1,0 +1,55 @@
+import { DataTypes } from "sequelize";
+import { sequelize } from "./db.js";
+import { User } from "./userModel.js";
+
+export const MenuItem = sequelize.define("MenuItem", {
+  name: { type: DataTypes.STRING, allowNull: false },
+  description: { type: DataTypes.TEXT, allowNull: true },
+  price: { type: DataTypes.DECIMAL(10, 2), allowNull: false, validate: { min: 0 } },
+  category: { type: DataTypes.STRING, allowNull: false },
+  image: { type: DataTypes.STRING, allowNull: true },
+  available: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true }
+});
+
+export const Order = sequelize.define("Order", {
+  orderNumber: { type: DataTypes.STRING, allowNull: false, unique: true },
+  customerName: { type: DataTypes.STRING, allowNull: false },
+  customerId: { type: DataTypes.INTEGER, allowNull: true },
+  orderType: { type: DataTypes.ENUM("Dine-in", "Takeout", "Pickup"), allowNull: false },
+  tableNumber: { type: DataTypes.STRING, allowNull: true },
+  idempotencyKey: { type: DataTypes.STRING(128), allowNull: true, unique: true },
+  status: { type: DataTypes.ENUM("Pending", "Confirmed", "Preparing", "Ready", "Completed", "Cancelled"), defaultValue: "Pending" },
+  total: { type: DataTypes.DECIMAL(10, 2), allowNull: false, defaultValue: 0 }
+});
+
+export const OrderItem = sequelize.define("OrderItem", {
+  quantity: { type: DataTypes.INTEGER, allowNull: false, validate: { min: 1 } },
+  price: { type: DataTypes.DECIMAL(10, 2), allowNull: false }
+});
+
+export const Payment = sequelize.define("Payment", {
+  method: { type: DataTypes.ENUM("Cash", "GCash"), allowNull: false },
+  amountPaid: { type: DataTypes.DECIMAL(10, 2), allowNull: false, defaultValue: 0 },
+  change: { type: DataTypes.DECIMAL(10, 2), allowNull: false, defaultValue: 0 },
+  status: { type: DataTypes.ENUM("Unpaid", "Paid", "Refunded"), allowNull: false, defaultValue: "Unpaid" },
+  referenceNumber: { type: DataTypes.STRING, allowNull: true },
+  paidAt: { type: DataTypes.DATE, allowNull: true }
+});
+
+export const OrderStatusHistory = sequelize.define("OrderStatusHistory", {
+  status: { type: DataTypes.ENUM("Pending", "Confirmed", "Preparing", "Ready", "Completed", "Cancelled"), allowNull: false },
+  changedBy: { type: DataTypes.INTEGER, allowNull: true }
+});
+
+Order.hasMany(OrderItem, { as: "items", foreignKey: "orderId", onDelete: "CASCADE" });
+OrderItem.belongsTo(Order, { foreignKey: "orderId" });
+MenuItem.hasMany(OrderItem, { foreignKey: "menuItemId" });
+OrderItem.belongsTo(MenuItem, { as: "menuItem", foreignKey: "menuItemId" });
+Order.hasOne(Payment, { as: "payment", foreignKey: "orderId", onDelete: "CASCADE" });
+Payment.belongsTo(Order, { foreignKey: "orderId" });
+Order.hasMany(OrderStatusHistory, { as: "statusHistory", foreignKey: "orderId", onDelete: "CASCADE" });
+OrderStatusHistory.belongsTo(Order, { foreignKey: "orderId" });
+Order.belongsTo(User, { as: "customer", foreignKey: "customerId" });
+User.hasMany(Order, { as: "orders", foreignKey: "customerId" });
+
+export { sequelize };

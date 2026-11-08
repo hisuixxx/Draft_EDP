@@ -1,0 +1,6 @@
+.env
+node_modules/
+public/uploads/menu/*
+!public/uploads/menu/.gitkeep
+.vscode/*.log
+npm-debug.log*

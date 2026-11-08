@@ -1,0 +1,38 @@
+{{> head}}
+<body>
+<div class="min-h-screen md:flex">
+  <aside class="sidebar md:w-60 p-5 shrink-0">
+    <a class="app-brand" href="/dashboard"><span class="brand-mark">R</span><span>Resto<strong>Flow</strong></span><small>Admin workspace</small></a>
+    <nav>
+      <a class="block rounded px-3 py-2" href="/dashboard">Overview</a>
+      <a class="block rounded px-3 py-2" href="/orders">Orders</a>
+      <a class="block rounded px-3 py-2 active" href="/manage/menu">Products</a>
+      <a class="block rounded px-3 py-2" href="/users">Users</a>
+      <a class="block rounded px-3 py-2" href="/reports">Reports</a>
+      <a class="block rounded px-3 py-2 mt-8 text-red-300" href="/logout">Log out</a>
+    </nav>
+  </aside>
+  <main class="flex-1 p-5 md:p-8 max-w-7xl">
+    <div class="welcome-bar">Welcome back, {{currentUser}}.</div>
+    {{#if success_msg}}<div class="notice notice-success">{{success_msg}}</div>{{/if}}
+    {{#if error_msg}}<div class="notice notice-error">{{error_msg}}</div>{{/if}}
+    <div class="mb-7"><p class="eyebrow">CATALOG CONTROL</p><h1>Menu management</h1><p class="muted">Manage the dishes and drinks customers can order.</p></div>
+    <div class="card p-5 mb-6">
+      <h2 class="font-bold mb-1">Add menu item</h2><p class="muted mb-4">Use a JPG, PNG, WEBP, or GIF image up to 5 MB.</p>
+      <form method="post" action="/manage/menu" enctype="multipart/form-data" class="grid md:grid-cols-6 gap-3 items-end">
+        <label class="text-sm font-bold">Item name<input class="field mt-1" name="name" placeholder="e.g. House ramen" required></label>
+        <label class="text-sm font-bold">Description<input class="field mt-1" name="description" placeholder="Short description"></label>
+        <label class="text-sm font-bold">Price<input class="field mt-1" name="price" type="number" step=".01" min="0" placeholder="Price" required></label>
+        <label class="text-sm font-bold">Category<input class="field mt-1" name="category" placeholder="Category" required></label>
+        <label class="text-sm font-bold">Food image<input class="field mt-1" name="image" type="file" accept="image/jpeg,image/png,image/webp,image/gif"></label>
+        <button class="btn btn-primary" type="submit">Add item</button>
+      </form>
+    </div>
+    <div class="card overflow-hidden">
+      <div class="overflow-x-auto"><table class="w-full text-left text-sm"><thead><tr><th class="p-3">Image</th><th class="p-3">Item</th><th class="p-3">Category</th><th class="p-3">Price</th><th class="p-3">Availability</th><th class="p-3">Actions</th></tr></thead><tbody>
+      {{#each items}}<tr class="border-t align-top"><td class="p-3">{{#if image}}<img class="menu-admin-image" src="{{image}}" alt="{{name}}" loading="lazy">{{else}}<span class="menu-admin-placeholder">—</span>{{/if}}</td><td class="p-3"><strong>{{name}}</strong><div class="text-xs text-slate-500">{{description}}</div></td><td class="p-3">{{category}}</td><td class="p-3">₱{{price}}</td><td class="p-3"><span class="status-badge">{{#if available}}Available{{else}}Unavailable{{/if}}</span></td><td class="p-3 flex flex-wrap gap-2"><details><summary class="text-emerald-800 cursor-pointer font-semibold">Edit</summary><form method="post" action="/manage/menu/{{id}}/edit" enctype="multipart/form-data" class="card p-3 mt-1 grid gap-2 min-w-64"><input class="field" name="name" value="{{name}}" required><input class="field" name="description" value="{{description}}"><input class="field" name="price" type="number" step=".01" min="0" value="{{price}}" required><input class="field" name="category" value="{{category}}" required><label class="text-xs font-bold">Replace image<input class="field mt-1 text-xs" name="image" type="file" accept="image/jpeg,image/png,image/webp,image/gif"></label><button class="btn btn-primary" type="submit">Save changes</button></form></details><form method="post" action="/manage/menu/{{id}}/toggle"><button class="text-emerald-800 font-semibold" type="submit">{{#if available}}Disable{{else}}Enable{{/if}}</button></form><form method="post" action="/manage/menu/{{id}}/delete"><button class="text-red-700 font-semibold" type="submit">Remove</button></form></td></tr>{{else}}<tr><td class="p-5 text-slate-500" colspan="6">No menu items yet.</td></tr>{{/each}}
+      </tbody></table></div>
+    </div>
+  </main>
+</div>
+{{> footer}}
