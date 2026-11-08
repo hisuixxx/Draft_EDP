@@ -8,7 +8,10 @@ export const MenuItem = sequelize.define("MenuItem", {
   price: { type: DataTypes.DECIMAL(10, 2), allowNull: false, validate: { min: 0 } },
   category: { type: DataTypes.STRING, allowNull: false },
   image: { type: DataTypes.STRING, allowNull: true },
-  available: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true }
+  available: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
+  trackInventory: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
+  stockQuantity: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0, validate: { min: 0 } },
+  lowStockThreshold: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 5, validate: { min: 0 } }
 });
 
 export const Order = sequelize.define("Order", {
@@ -41,6 +44,12 @@ export const OrderStatusHistory = sequelize.define("OrderStatusHistory", {
   changedBy: { type: DataTypes.INTEGER, allowNull: true }
 });
 
+export const InventoryTransaction = sequelize.define("InventoryTransaction", {
+  quantity: { type: DataTypes.INTEGER, allowNull: false },
+  type: { type: DataTypes.ENUM("addition", "deduction", "adjustment"), allowNull: false },
+  reason: { type: DataTypes.STRING, allowNull: false }
+});
+
 Order.hasMany(OrderItem, { as: "items", foreignKey: "orderId", onDelete: "CASCADE" });
 OrderItem.belongsTo(Order, { foreignKey: "orderId" });
 MenuItem.hasMany(OrderItem, { foreignKey: "menuItemId" });
@@ -49,6 +58,10 @@ Order.hasOne(Payment, { as: "payment", foreignKey: "orderId", onDelete: "CASCADE
 Payment.belongsTo(Order, { foreignKey: "orderId" });
 Order.hasMany(OrderStatusHistory, { as: "statusHistory", foreignKey: "orderId", onDelete: "CASCADE" });
 OrderStatusHistory.belongsTo(Order, { foreignKey: "orderId" });
+MenuItem.hasMany(InventoryTransaction, { as: "inventoryTransactions", foreignKey: "menuItemId", onDelete: "CASCADE" });
+InventoryTransaction.belongsTo(MenuItem, { foreignKey: "menuItemId" });
+User.hasMany(InventoryTransaction, { as: "inventoryChanges", foreignKey: "changedBy" });
+InventoryTransaction.belongsTo(User, { as: "changedByUser", foreignKey: "changedBy" });
 Order.belongsTo(User, { as: "customer", foreignKey: "customerId" });
 User.hasMany(Order, { as: "orders", foreignKey: "customerId" });
 

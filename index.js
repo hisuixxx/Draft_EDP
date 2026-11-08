@@ -40,6 +40,7 @@ const __dirname = dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3000;
 hbs.registerHelper("eq", (left, right) => left === right);
+hbs.registerHelper("lte", (left, right) => Number(left) <= Number(right));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

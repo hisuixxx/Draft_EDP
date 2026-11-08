@@ -28,7 +28,7 @@ import express from "express";
 import { homePage } from "../controllers/homeController.js";
 import { requireAuth, requireAdmin, requireStaff, requireCustomer } from "../middleware/auth.js";
 import { menuImageUpload } from "../middleware/upload.js";
-import { dashboardPage, menuPage, menuCreate, menuUpdate, menuToggle, menuDelete, newOrderPage, createOrder, ordersPage, orderConfirmationPage, updateOrderStatus, reportsPage } from "../controllers/restaurantController.js";
+import { dashboardPage, menuPage, menuCreate, menuUpdate, menuToggle, menuDelete, adjustInventory, newOrderPage, createOrder, ordersPage, orderConfirmationPage, updateOrderStatus, reportsPage } from "../controllers/restaurantController.js";
 const router = express.Router();
 const asyncHandler = handler => (req, res, next) => Promise.resolve(handler(req, res, next)).catch(next);
 router.get("/", asyncHandler(homePage));
@@ -50,6 +50,7 @@ router.post("/manage/menu", requireAuth, requireAdmin, menuImageUpload.single("i
 router.post("/manage/menu/:id/edit", requireAuth, requireAdmin, menuImageUpload.single("image"), asyncHandler(menuUpdate));
 router.post("/manage/menu/:id/toggle", requireAuth, requireAdmin, asyncHandler(menuToggle));
 router.post("/manage/menu/:id/delete", requireAuth, requireAdmin, asyncHandler(menuDelete));
+router.post("/manage/menu/:id/inventory", requireAuth, requireAdmin, asyncHandler(adjustInventory));
 router.get("/orders/new", requireAuth, requireStaff, asyncHandler(newOrderPage));
 router.get("/checkout", requireAuth, requireCustomer, asyncHandler(newOrderPage));
 router.post("/orders", requireAuth, asyncHandler(createOrder));

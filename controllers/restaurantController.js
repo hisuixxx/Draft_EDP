@@ -1,6 +1,6 @@
 import { Op, fn, col, literal } from "sequelize";
 import { sequelize } from "../models/db.js";
-import { MenuItem, Order, OrderItem, OrderStatusHistory, Payment } from "../models/restaurantModel.js";
+import { MenuItem, Order, OrderItem, OrderStatusHistory, Payment, InventoryTransaction } from "../models/restaurantModel.js";
 
 const page = (res, view, data = {}) => res.render(view, { title: "RestoFlow Restaurant", ...data });
 const money = value => Number.parseFloat(value || 0).toFixed(2);
@@ -41,12 +41,15 @@ export const menuPage = async (req, res) => page(res, "menu", {
 });
 
 export const menuCreate = async (req, res) => {
-  const { name, description, price, category, image } = req.body;
-  if (!name?.trim() || !category?.trim() || !Number.isFinite(Number(price)) || Number(price) < 0) {
+  const { name, description, price, category, image, trackInventory, stockQuantity, lowStockThreshold } = req.body;
+  const stock = Number(stockQuantity || 0);
+  const threshold = Number(lowStockThreshold || 0);
+  if (!name?.trim() || !category?.trim() || !Number.isFinite(Number(price)) || Number(price) < 0 || !Number.isInteger(stock) || stock < 0 || !Number.isInteger(threshold) || threshold < 0) {
     req.flash("error_msg", "Please provide a valid name, category, and price.");
     return res.redirect("/menu");
   }
-  await MenuItem.create({ name: name.trim(), description: description?.trim() || null, price: Number(price), category: category.trim(), image: req.file ? `/uploads/menu/${req.file.filename}` : image?.trim() || null });
+  const item = await MenuItem.create({ name: name.trim(), description: description?.trim() || null, price: Number(price), category: category.trim(), image: req.file ? `/uploads/menu/${req.file.filename}` : image?.trim() || null, trackInventory: trackInventory === "on", stockQuantity: stock, lowStockThreshold: threshold });
+  if (item.trackInventory && stock > 0) await InventoryTransaction.create({ menuItemId: item.id, quantity: stock, type: "addition", reason: "Initial stock", changedBy: req.session.userId });
   req.flash("success_msg", "Menu item added successfully!");
   res.redirect("/menu");
 };
@@ -57,14 +60,42 @@ export const menuUpdate = async (req, res) => {
     req.flash("error_msg", "Menu item not found.");
     return res.redirect("/menu");
   }
-  const { name, description, price, category, image } = req.body;
-  if (!name?.trim() || !category?.trim() || !Number.isFinite(Number(price)) || Number(price) < 0) {
+  const { name, description, price, category, image, trackInventory, stockQuantity, lowStockThreshold } = req.body;
+  const stock = Number(stockQuantity || 0);
+  const threshold = Number(lowStockThreshold || 0);
+  if (!name?.trim() || !category?.trim() || !Number.isFinite(Number(price)) || Number(price) < 0 || !Number.isInteger(stock) || stock < 0 || !Number.isInteger(threshold) || threshold < 0) {
     req.flash("error_msg", "Please provide valid menu item details.");
     return res.redirect("/menu");
   }
-  await item.update({ name: name.trim(), description: description?.trim() || null, price: Number(price), category: category.trim(), image: req.file ? `/uploads/menu/${req.file.filename}` : item.image || image?.trim() || null });
+  const previousStock = item.stockQuantity;
+  const trackingEnabled = trackInventory === "on";
+  await item.update({ name: name.trim(), description: description?.trim() || null, price: Number(price), category: category.trim(), image: req.file ? `/uploads/menu/${req.file.filename}` : item.image || image?.trim() || null, trackInventory: trackingEnabled, stockQuantity: stock, lowStockThreshold: threshold });
+  if (trackingEnabled && stock !== previousStock) await InventoryTransaction.create({ menuItemId: item.id, quantity: stock - previousStock, type: stock > previousStock ? "addition" : "deduction", reason: "Menu stock update", changedBy: req.session.userId });
   req.flash("success_msg", "Menu item updated successfully!");
   res.redirect("/menu");
+};
+
+export const adjustInventory = async (req, res) => {
+  const quantity = Number(req.body.quantity);
+  const reason = typeof req.body.reason === "string" ? req.body.reason.trim() : "";
+  if (!Number.isInteger(quantity) || quantity === 0 || !reason || reason.length > 255) {
+    req.flash("error_msg", "Enter a non-zero whole-number adjustment and a reason.");
+    return res.redirect("/manage/menu");
+  }
+  try {
+    await sequelize.transaction(async transaction => {
+      const item = await MenuItem.findByPk(req.params.id, { transaction, lock: transaction.LOCK.UPDATE });
+      if (!item) throw new Error("Menu item not found.");
+      const nextStock = item.stockQuantity + quantity;
+      if (nextStock < 0) throw new Error("Stock cannot become negative.");
+      await item.update({ trackInventory: true, stockQuantity: nextStock }, { transaction });
+      await InventoryTransaction.create({ menuItemId: item.id, quantity, type: quantity > 0 ? "addition" : "deduction", reason, changedBy: req.session.userId }, { transaction });
+    });
+    req.flash("success_msg", "Inventory updated successfully.");
+  } catch (error) {
+    req.flash("error_msg", error.message === "Stock cannot become negative." ? error.message : "Could not update inventory.");
+  }
+  res.redirect("/manage/menu");
 };
 
 export const menuToggle = async (req, res) => {
@@ -107,9 +138,12 @@ export const createOrder = async (req, res) => {
   }
   const transaction = await sequelize.transaction();
   try {
-    const menuItems = await MenuItem.findAll({ where: { id: { [Op.in]: ids }, available: true }, transaction });
+    const menuItems = await MenuItem.findAll({ where: { id: { [Op.in]: ids }, available: true }, transaction, lock: transaction.LOCK.UPDATE });
     if (menuItems.length !== ids.length) throw new Error("One or more selected items are unavailable.");
     const lines = menuItems.map(item => ({ item, quantity: Math.max(1, Math.floor(Number(quantities[item.id] || 1))) }));
+    for (const line of lines) {
+      if (line.item.trackInventory && line.quantity > line.item.stockQuantity) throw new Error(`${line.item.name} does not have enough stock.`);
+    }
     const total = lines.reduce((sum, line) => sum + Number(line.item.price) * line.quantity, 0);
     const paid = Number(amountPaid || 0);
     const status = paymentMethod === "Cash" && paid >= total ? "Paid" : "Unpaid";
@@ -122,6 +156,11 @@ export const createOrder = async (req, res) => {
     })), { transaction });
     await Payment.create({ orderId: order.id, method: paymentMethod || "Cash", amountPaid: status === "Paid" ? paid : 0, change: status === "Paid" ? paid - total : 0, status, paidAt: status === "Paid" ? new Date() : null }, { transaction });
     await OrderStatusHistory.create({ orderId: order.id, status: "Pending", changedBy: req.session.userId || null }, { transaction });
+    for (const line of lines) {
+      if (!line.item.trackInventory) continue;
+      await line.item.decrement("stockQuantity", { by: line.quantity, transaction });
+      await InventoryTransaction.create({ menuItemId: line.item.id, quantity: -line.quantity, type: "deduction", reason: `Order ${order.orderNumber}`, changedBy: req.session.userId || null }, { transaction });
+    }
     await transaction.commit();
     req.flash("success_msg", "Your order has been placed successfully!");
     return res.redirect(req.session.userRole === "customer" ? `/orders/${order.id}/confirmation` : "/orders");
