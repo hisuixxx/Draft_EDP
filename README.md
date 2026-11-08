@@ -49,7 +49,9 @@ All role checks are enforced by server middleware. Payment methods that are not 
 
 ## Database
 
-The current schema includes users, menu items, orders, order items, payments, and order status history, with Sequelize foreign-key relationships and transactional order creation.
+The current schema includes users, categories, menu items, restaurant settings, orders, order items, payments, order status history, inventory transactions, and audit logs, with Sequelize relationships and transactional order creation/inventory changes.
+
+Administrators can manage categories and restaurant settings, export completed-sales reports as CSV, review audit logs, and adjust tracked inventory. Existing legacy menu records remain supported through their original category text; new products can be assigned to active category records.
 
 ## Development
 
@@ -59,4 +61,4 @@ Run route inspection with:
 npm run route:list
 ```
 
-See [DEVELOPMENT_LOG.md](./DEVELOPMENT_LOG.md) for verified work, test results, and remaining roadmap items.
+Use Git history for verified feature commits and test results. A local development log may be maintained separately from the deployable application files.

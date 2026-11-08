@@ -1,6 +1,6 @@
 import { Op, fn, col, literal } from "sequelize";
 import { sequelize } from "../models/db.js";
-import { MenuItem, Order, OrderItem, OrderStatusHistory, Payment, InventoryTransaction } from "../models/restaurantModel.js";
+import { MenuItem, Category, RestaurantSetting, Order, OrderItem, OrderStatusHistory, Payment, InventoryTransaction } from "../models/restaurantModel.js";
 import { recordAudit } from "../utils/audit.js";
 
 const page = (res, view, data = {}) => res.render(view, { title: "RestoFlow Restaurant", ...data });
@@ -38,18 +38,78 @@ export const dashboardPage = async (req, res) => {
 };
 
 export const menuPage = async (req, res) => page(res, "menu", {
-  items: await MenuItem.findAll({ order: [["category", "ASC"], ["name", "ASC"]] })
+  items: await MenuItem.findAll({ include: [{ model: Category, as: "categoryRecord" }], order: [["category", "ASC"], ["name", "ASC"]] }),
+  categories: await Category.findAll({ where: { active: true }, order: [["name", "ASC"]] })
 });
 
+export const categoriesPage = async (req, res) => page(res, "categories", {
+  categories: await Category.findAll({ order: [["active", "DESC"], ["name", "ASC"]] })
+});
+
+export const createCategory = async (req, res) => {
+  const name = typeof req.body.name === "string" ? req.body.name.trim() : "";
+  const description = typeof req.body.description === "string" ? req.body.description.trim() : "";
+  if (!name || name.length > 80) {
+    req.flash("error_msg", "Category names are required and must be 80 characters or fewer.");
+    return res.redirect("/categories");
+  }
+  try {
+    const category = await Category.create({ name, description: description || null });
+    await recordAudit(req, "create", "category", category.id, `Created category ${category.name}`);
+    req.flash("success_msg", "Category created successfully.");
+  } catch (error) {
+    console.error("Category creation failed:", error);
+    req.flash("error_msg", error.name === "SequelizeUniqueConstraintError" ? "That category already exists." : "Could not create category.");
+  }
+  res.redirect("/categories");
+};
+
+export const toggleCategory = async (req, res) => {
+  const category = await Category.findByPk(req.params.id);
+  if (!category) {
+    req.flash("error_msg", "Category not found.");
+    return res.redirect("/categories");
+  }
+  await category.update({ active: !category.active });
+  await recordAudit(req, "status_change", "category", category.id, `${category.name} ${category.active ? "activated" : "archived"}`);
+  req.flash("success_msg", `Category ${category.active ? "activated" : "archived"}.`);
+  res.redirect("/categories");
+};
+
+export const settingsPage = async (req, res) => {
+  const settings = await RestaurantSetting.findAll({ order: [["key", "ASC"]] });
+  res.render("settings", { title: "Restaurant settings", settings: Object.fromEntries(settings.map(setting => [setting.key, setting.value])) });
+};
+
+export const updateSettings = async (req, res) => {
+  const allowed = ["restaurantName", "restaurantDescription", "contactPhone", "address", "openingHours"];
+  try {
+    await sequelize.transaction(async transaction => {
+      for (const key of allowed) {
+        const value = typeof req.body[key] === "string" ? req.body[key].trim() : "";
+        await RestaurantSetting.upsert({ key, value: value.slice(0, 1000) }, { transaction });
+      }
+    });
+    await recordAudit(req, "update", "restaurant_settings", null, "Restaurant settings updated");
+    req.flash("success_msg", "Restaurant settings saved.");
+  } catch (error) {
+    console.error("Restaurant settings update failed:", error);
+    req.flash("error_msg", "Could not save restaurant settings.");
+  }
+  res.redirect("/settings");
+};
+
 export const menuCreate = async (req, res) => {
-  const { name, description, price, category, image, trackInventory, stockQuantity, lowStockThreshold } = req.body;
+  const { name, description, price, category, categoryId, image, trackInventory, stockQuantity, lowStockThreshold } = req.body;
+  const selectedCategory = categoryId ? await Category.findOne({ where: { id: categoryId, active: true } }) : null;
+  const categoryName = selectedCategory?.name || category;
   const stock = Number(stockQuantity || 0);
   const threshold = Number(lowStockThreshold || 0);
-  if (!name?.trim() || !category?.trim() || !Number.isFinite(Number(price)) || Number(price) < 0 || !Number.isInteger(stock) || stock < 0 || !Number.isInteger(threshold) || threshold < 0) {
+  if (!name?.trim() || !categoryName?.trim() || !Number.isFinite(Number(price)) || Number(price) < 0 || !Number.isInteger(stock) || stock < 0 || !Number.isInteger(threshold) || threshold < 0) {
     req.flash("error_msg", "Please provide a valid name, category, and price.");
     return res.redirect("/menu");
   }
-  const item = await MenuItem.create({ name: name.trim(), description: description?.trim() || null, price: Number(price), category: category.trim(), image: req.file ? `/uploads/menu/${req.file.filename}` : image?.trim() || null, trackInventory: trackInventory === "on", stockQuantity: stock, lowStockThreshold: threshold });
+  const item = await MenuItem.create({ name: name.trim(), description: description?.trim() || null, price: Number(price), category: categoryName.trim(), categoryId: selectedCategory?.id || null, image: req.file ? `/uploads/menu/${req.file.filename}` : image?.trim() || null, trackInventory: trackInventory === "on", stockQuantity: stock, lowStockThreshold: threshold });
   if (item.trackInventory && stock > 0) await InventoryTransaction.create({ menuItemId: item.id, quantity: stock, type: "addition", reason: "Initial stock", changedBy: req.session.userId });
   await recordAudit(req, "create", "menu_item", item.id, `Created menu item ${item.name}`);
   req.flash("success_msg", "Menu item added successfully!");
@@ -62,16 +122,18 @@ export const menuUpdate = async (req, res) => {
     req.flash("error_msg", "Menu item not found.");
     return res.redirect("/menu");
   }
-  const { name, description, price, category, image, trackInventory, stockQuantity, lowStockThreshold } = req.body;
+  const { name, description, price, category, categoryId, image, trackInventory, stockQuantity, lowStockThreshold } = req.body;
+  const selectedCategory = categoryId ? await Category.findOne({ where: { id: categoryId, active: true } }) : null;
+  const categoryName = selectedCategory?.name || category;
   const stock = Number(stockQuantity || 0);
   const threshold = Number(lowStockThreshold || 0);
-  if (!name?.trim() || !category?.trim() || !Number.isFinite(Number(price)) || Number(price) < 0 || !Number.isInteger(stock) || stock < 0 || !Number.isInteger(threshold) || threshold < 0) {
+  if (!name?.trim() || !categoryName?.trim() || !Number.isFinite(Number(price)) || Number(price) < 0 || !Number.isInteger(stock) || stock < 0 || !Number.isInteger(threshold) || threshold < 0) {
     req.flash("error_msg", "Please provide valid menu item details.");
     return res.redirect("/menu");
   }
   const previousStock = item.stockQuantity;
   const trackingEnabled = trackInventory === "on";
-  await item.update({ name: name.trim(), description: description?.trim() || null, price: Number(price), category: category.trim(), image: req.file ? `/uploads/menu/${req.file.filename}` : item.image || image?.trim() || null, trackInventory: trackingEnabled, stockQuantity: stock, lowStockThreshold: threshold });
+  await item.update({ name: name.trim(), description: description?.trim() || null, price: Number(price), category: categoryName.trim(), categoryId: selectedCategory?.id || null, image: req.file ? `/uploads/menu/${req.file.filename}` : item.image || image?.trim() || null, trackInventory: trackingEnabled, stockQuantity: stock, lowStockThreshold: threshold });
   if (trackingEnabled && stock !== previousStock) await InventoryTransaction.create({ menuItemId: item.id, quantity: stock - previousStock, type: stock > previousStock ? "addition" : "deduction", reason: "Menu stock update", changedBy: req.session.userId });
   await recordAudit(req, "update", "menu_item", item.id, `Updated menu item ${item.name}`);
   req.flash("success_msg", "Menu item updated successfully!");
@@ -210,6 +272,22 @@ export const updateOrderStatus = async (req, res) => {
 };
 
 export const reportsPage = async (req, res) => {
-  const completed = await Order.findAll({ where: { status: "Completed" }, attributes: [[fn("DATE", col("createdAt")), "day"], [fn("SUM", col("total")), "sales"], [fn("COUNT", col("id")), "orders"]], group: [literal("DATE(`createdAt`)")], order: [[literal("day"), "DESC"]], limit: 31, raw: true });
-  page(res, "reports", { reports: completed.map(row => ({ ...row, sales: money(row.sales) })) });
+  const { from = "", to = "" } = req.query;
+  const where = { status: "Completed" };
+  if (from || to) where.createdAt = {};
+  if (from) where.createdAt[Op.gte] = new Date(`${from}T00:00:00`);
+  if (to) where.createdAt[Op.lt] = new Date(`${to}T23:59:59`);
+  const completed = await Order.findAll({ where, attributes: [[fn("DATE", col("createdAt")), "day"], [fn("SUM", col("total")), "sales"], [fn("COUNT", col("id")), "orders"]], group: [literal("DATE(`createdAt`)")], order: [[literal("day"), "DESC"]], limit: 366, raw: true });
+  page(res, "reports", { reports: completed.map(row => ({ ...row, sales: money(row.sales) })), filters: { from, to } });
+};
+
+export const reportsCsv = async (req, res) => {
+  const { from = "", to = "" } = req.query;
+  const where = { status: "Completed" };
+  if (from || to) where.createdAt = {};
+  if (from) where.createdAt[Op.gte] = new Date(`${from}T00:00:00`);
+  if (to) where.createdAt[Op.lt] = new Date(`${to}T23:59:59`);
+  const rows = await Order.findAll({ where, attributes: [[fn("DATE", col("createdAt")), "day"], [fn("SUM", col("total")), "sales"], [fn("COUNT", col("id")), "orders"]], group: [literal("DATE(`createdAt`)")], order: [[literal("day"), "ASC"]], raw: true });
+  const csv = ["date,orders,sales", ...rows.map(row => `${row.day},${row.orders},${money(row.sales)}`)].join("\r\n");
+  res.type("text/csv").attachment("servesync-sales-report.csv").send(csv);
 };

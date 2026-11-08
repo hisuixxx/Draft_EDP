@@ -7,11 +7,23 @@ export const MenuItem = sequelize.define("MenuItem", {
   description: { type: DataTypes.TEXT, allowNull: true },
   price: { type: DataTypes.DECIMAL(10, 2), allowNull: false, validate: { min: 0 } },
   category: { type: DataTypes.STRING, allowNull: false },
+  categoryId: { type: DataTypes.INTEGER, allowNull: true },
   image: { type: DataTypes.STRING, allowNull: true },
   available: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
   trackInventory: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
   stockQuantity: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0, validate: { min: 0 } },
   lowStockThreshold: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 5, validate: { min: 0 } }
+});
+
+export const Category = sequelize.define("Category", {
+  name: { type: DataTypes.STRING(80), allowNull: false, unique: true },
+  description: { type: DataTypes.STRING(255), allowNull: true },
+  active: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true }
+});
+
+export const RestaurantSetting = sequelize.define("RestaurantSetting", {
+  key: { type: DataTypes.STRING(80), allowNull: false, unique: true },
+  value: { type: DataTypes.TEXT, allowNull: true }
 });
 
 export const Order = sequelize.define("Order", {
@@ -62,6 +74,8 @@ Order.hasMany(OrderItem, { as: "items", foreignKey: "orderId", onDelete: "CASCAD
 OrderItem.belongsTo(Order, { foreignKey: "orderId" });
 MenuItem.hasMany(OrderItem, { foreignKey: "menuItemId" });
 OrderItem.belongsTo(MenuItem, { as: "menuItem", foreignKey: "menuItemId" });
+Category.hasMany(MenuItem, { as: "menuItems", foreignKey: "categoryId" });
+MenuItem.belongsTo(Category, { as: "categoryRecord", foreignKey: "categoryId" });
 Order.hasOne(Payment, { as: "payment", foreignKey: "orderId", onDelete: "CASCADE" });
 Payment.belongsTo(Order, { foreignKey: "orderId" });
 Order.hasMany(OrderStatusHistory, { as: "statusHistory", foreignKey: "orderId", onDelete: "CASCADE" });
