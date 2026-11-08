@@ -26,6 +26,7 @@
     
 import { User } from "../models/userModel.js";
 import { hashPassword, verifyPassword } from "../utils/password.js";
+import { recordAudit } from "../utils/audit.js";
 
 export const loginPage = (req, res) => res.render("login", { title: "Login" });
 export const registerPage = (req, res) => res.render("register", { title: "Register" });
@@ -46,6 +47,7 @@ export const loginUser = async (req, res) => {
   const match = typeof password === "string" && await verifyPassword(password, user.password);
   if (!match) { req.flash("error_msg", "Invalid email or password."); return res.redirect("/login"); }
   req.session.userId = user.id; req.session.userRole = user.role; req.session.userName = user.name;
+  await recordAudit(req, "login", "user", user.id, "Successful login");
   res.redirect("/dashboard");
 };
 
@@ -57,11 +59,14 @@ export const registerUser = async (req, res) => {
   try {
     const user = await User.create({ name: normalizedName, email: normalizedEmail, password: await hashPassword(password), role: "customer", active: true });
     req.session.userId = user.id; req.session.userRole = user.role; req.session.userName = user.name;
+    await recordAudit(req, "register", "user", user.id, "Customer account created");
     res.redirect("/dashboard");
   } catch (error) { console.error("Customer registration failed:", error); req.flash("error_msg", error.name === "SequelizeUniqueConstraintError" ? "That email is already registered." : "We could not create your account. Please try again."); res.redirect("/register"); }
 };
 
 export const logoutUser = (req, res) => {
+  const userId = req.session.userId;
+  if (userId) recordAudit(req, "logout", "user", userId, "User logged out");
   req.session.destroy(error => {
     if (error) console.error("Logout failed:", error);
     res.clearCookie("connect.sid");
@@ -95,6 +100,7 @@ export const updateProfile = async (req, res) => {
   try {
     await user.update({ name, email });
     req.session.userName = user.name;
+    await recordAudit(req, "update", "user", user.id, "Profile details updated");
     req.flash("success_msg", "Profile updated successfully.");
   } catch (error) {
     console.error("Profile update failed:", error);
@@ -115,18 +121,24 @@ export const changeOwnPassword = async (req, res) => {
     return res.redirect("/profile");
   }
   await user.update({ password: await hashPassword(password) });
+  await recordAudit(req, "change_password", "user", user.id, "User changed their password");
   req.flash("success_msg", "Password changed successfully.");
   res.redirect("/profile");
 };
 
 export const usersPage = async (req, res) => res.render("users", { title: "User Management", users: await User.findAll({ order: [["name", "ASC"]] }) });
+export const auditLogsPage = async (req, res) => {
+  const { AuditLog } = await import("../models/restaurantModel.js");
+  const logs = await AuditLog.findAll({ include: [{ model: User, as: "user", attributes: ["name", "email"] }], order: [["createdAt", "DESC"]], limit: 200 });
+  res.render("audit-logs", { title: "Audit logs", logs });
+};
 export const createUser = async (req, res) => {
   const { name, email, password, role } = req.body;
   if (!name?.trim() || !email?.trim() || !password || password.length < 6 || !["admin", "staff", "customer"].includes(role)) {
     req.flash("error_msg", "Provide a valid name, email, role, and password with at least 6 characters.");
     return res.redirect("/users");
   }
-  try { await User.create({ name: name.trim(), email: email.trim().toLowerCase(), password: await hashPassword(password), role, active: true }); req.flash("success_msg", "User account created."); }
+  try { const user = await User.create({ name: name.trim(), email: email.trim().toLowerCase(), password: await hashPassword(password), role, active: true }); await recordAudit(req, "create", "user", user.id, `Created ${role} account`); req.flash("success_msg", "User account created."); }
   catch (error) { console.error("Admin user creation failed:", error); req.flash("error_msg", error.name === "SequelizeUniqueConstraintError" ? "That email is already registered." : "Could not create user. Check the database connection and required fields."); }
   res.redirect("/users");
 };
@@ -147,6 +159,7 @@ export const changeUserPassword = async (req, res) => {
     return res.redirect("/users");
   }
   await user.update({ password: await hashPassword(password) });
+  await recordAudit(req, "change_password", "user", user.id, "Administrator changed a user password");
   req.flash("success_msg", "Password updated successfully.");
   res.redirect("/users");
 };
@@ -167,6 +180,7 @@ export const updateUserRole = async (req, res) => {
     return res.redirect("/users");
   }
   await user.update({ role });
+  await recordAudit(req, "role_change", "user", user.id, `Role changed to ${role}`);
   req.flash("success_msg", "User role updated successfully.");
   res.redirect("/users");
 };
@@ -182,6 +196,7 @@ export const toggleUserStatus = async (req, res) => {
     return res.redirect("/users");
   }
   await user.update({ active: !user.active });
+  await recordAudit(req, "status_change", "user", user.id, `Account ${user.active ? "activated" : "deactivated"}`);
   req.flash("success_msg", `User account ${user.active ? "activated" : "deactivated"}.`);
   res.redirect("/users");
 };

@@ -1,0 +1,24 @@
+{{> head}}
+<body>
+<div class="min-h-screen md:flex">
+  <aside class="sidebar md:w-60 p-5 shrink-0">
+    <a class="app-brand" href="/dashboard"><span class="brand-mark">R</span><span>Resto<strong>Flow</strong></span><small>Admin workspace</small></a>
+    <nav class="space-y-1">
+      <a class="block rounded px-3 py-2" href="/dashboard">Overview</a>
+      <a class="block rounded px-3 py-2" href="/manage/menu">Menu management</a>
+      <a class="block rounded px-3 py-2" href="/users">Users</a>
+      <a class="block rounded px-3 py-2 active" href="/audit-logs">Audit logs</a>
+      <a class="block rounded px-3 py-2 mt-8 text-red-300" href="/logout">Log out</a>
+    </nav>
+  </aside>
+  <main class="flex-1 p-5 md:p-8 max-w-7xl">
+    <div class="welcome-bar">Welcome back, {{currentUser}}.</div>
+    <div class="page-heading"><div><p class="eyebrow">SECURITY &amp; ACCOUNTABILITY</p><h1>Audit logs</h1><p class="muted">Recent account and operational activity.</p></div></div>
+    <div class="card overflow-hidden">
+      <div class="overflow-x-auto"><table class="w-full text-left text-sm"><thead><tr><th class="p-3">Time</th><th class="p-3">User</th><th class="p-3">Action</th><th class="p-3">Entity</th><th class="p-3">Details</th><th class="p-3">IP address</th></tr></thead><tbody>
+      {{#each logs}}<tr class="border-t align-top"><td class="p-3 whitespace-nowrap">{{createdAt}}</td><td class="p-3">{{#if user}}{{user.name}}<div class="text-xs text-slate-500">{{user.email}}</div>{{else}}System{{/if}}</td><td class="p-3"><span class="status-badge">{{action}}</span></td><td class="p-3">{{entity}} {{entityId}}</td><td class="p-3">{{details}}</td><td class="p-3">{{ipAddress}}</td></tr>{{else}}<tr><td class="p-5 text-slate-500" colspan="6">No audit activity yet.</td></tr>{{/each}}
+      </tbody></table></div>
+    </div>
+  </main>
+</div>
+{{> footer}}

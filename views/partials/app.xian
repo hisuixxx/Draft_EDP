@@ -8,7 +8,7 @@
       <a class="block rounded px-3 py-2" href="/profile">My profile</a>
       <a class="block rounded px-3 py-2" href="/orders">{{#if isCustomer}}My orders{{else}}Orders{{/if}}</a>
       {{#if isStaff}}<a class="block rounded px-3 py-2" href="/orders/new">New order</a>{{/if}}
-      {{#if isAdmin}}<a class="block rounded px-3 py-2" href="/manage/menu">Menu management</a><a class="block rounded px-3 py-2" href="/reports">Reports</a><a class="block rounded px-3 py-2" href="/users">Users</a>{{/if}}
+      {{#if isAdmin}}<a class="block rounded px-3 py-2" href="/manage/menu">Menu management</a><a class="block rounded px-3 py-2" href="/reports">Reports</a><a class="block rounded px-3 py-2" href="/users">Users</a><a class="block rounded px-3 py-2" href="/audit-logs">Audit logs</a>{{/if}}
       {{#if isCustomer}}<a class="block rounded px-3 py-2" href="/menu">Browse menu</a>{{/if}}
       <a class="block rounded px-3 py-2 mt-8 text-red-300" href="/logout">Log out</a>
     </nav>

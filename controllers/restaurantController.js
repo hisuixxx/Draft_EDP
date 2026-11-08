@@ -1,6 +1,7 @@
 import { Op, fn, col, literal } from "sequelize";
 import { sequelize } from "../models/db.js";
 import { MenuItem, Order, OrderItem, OrderStatusHistory, Payment, InventoryTransaction } from "../models/restaurantModel.js";
+import { recordAudit } from "../utils/audit.js";
 
 const page = (res, view, data = {}) => res.render(view, { title: "RestoFlow Restaurant", ...data });
 const money = value => Number.parseFloat(value || 0).toFixed(2);
@@ -50,6 +51,7 @@ export const menuCreate = async (req, res) => {
   }
   const item = await MenuItem.create({ name: name.trim(), description: description?.trim() || null, price: Number(price), category: category.trim(), image: req.file ? `/uploads/menu/${req.file.filename}` : image?.trim() || null, trackInventory: trackInventory === "on", stockQuantity: stock, lowStockThreshold: threshold });
   if (item.trackInventory && stock > 0) await InventoryTransaction.create({ menuItemId: item.id, quantity: stock, type: "addition", reason: "Initial stock", changedBy: req.session.userId });
+  await recordAudit(req, "create", "menu_item", item.id, `Created menu item ${item.name}`);
   req.flash("success_msg", "Menu item added successfully!");
   res.redirect("/menu");
 };
@@ -71,6 +73,7 @@ export const menuUpdate = async (req, res) => {
   const trackingEnabled = trackInventory === "on";
   await item.update({ name: name.trim(), description: description?.trim() || null, price: Number(price), category: category.trim(), image: req.file ? `/uploads/menu/${req.file.filename}` : item.image || image?.trim() || null, trackInventory: trackingEnabled, stockQuantity: stock, lowStockThreshold: threshold });
   if (trackingEnabled && stock !== previousStock) await InventoryTransaction.create({ menuItemId: item.id, quantity: stock - previousStock, type: stock > previousStock ? "addition" : "deduction", reason: "Menu stock update", changedBy: req.session.userId });
+  await recordAudit(req, "update", "menu_item", item.id, `Updated menu item ${item.name}`);
   req.flash("success_msg", "Menu item updated successfully!");
   res.redirect("/menu");
 };
@@ -90,6 +93,7 @@ export const adjustInventory = async (req, res) => {
       if (nextStock < 0) throw new Error("Stock cannot become negative.");
       await item.update({ trackInventory: true, stockQuantity: nextStock }, { transaction });
       await InventoryTransaction.create({ menuItemId: item.id, quantity, type: quantity > 0 ? "addition" : "deduction", reason, changedBy: req.session.userId }, { transaction });
+      await recordAudit(req, "inventory_adjustment", "menu_item", item.id, `${quantity > 0 ? "Added" : "Removed"} ${Math.abs(quantity)} stock: ${reason}`, transaction);
     });
     req.flash("success_msg", "Inventory updated successfully.");
   } catch (error) {
@@ -161,6 +165,7 @@ export const createOrder = async (req, res) => {
       await line.item.decrement("stockQuantity", { by: line.quantity, transaction });
       await InventoryTransaction.create({ menuItemId: line.item.id, quantity: -line.quantity, type: "deduction", reason: `Order ${order.orderNumber}`, changedBy: req.session.userId || null }, { transaction });
     }
+    await recordAudit(req, "create", "order", order.id, `Created order ${order.orderNumber}`, transaction);
     await transaction.commit();
     req.flash("success_msg", "Your order has been placed successfully!");
     return res.redirect(req.session.userRole === "customer" ? `/orders/${order.id}/confirmation` : "/orders");
@@ -198,6 +203,7 @@ export const updateOrderStatus = async (req, res) => {
   await sequelize.transaction(async transaction => {
     await order.update({ status: nextStatus }, { transaction });
     await OrderStatusHistory.create({ orderId: order.id, status: nextStatus, changedBy: req.session.userId }, { transaction });
+    await recordAudit(req, "status_change", "order", order.id, `Order status changed to ${nextStatus}`, transaction);
   });
   req.flash("success_msg", nextStatus === "Cancelled" ? "Order cancelled successfully!" : "Order status updated successfully!");
   res.redirect("/orders");

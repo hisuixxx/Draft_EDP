@@ -50,6 +50,14 @@ export const InventoryTransaction = sequelize.define("InventoryTransaction", {
   reason: { type: DataTypes.STRING, allowNull: false }
 });
 
+export const AuditLog = sequelize.define("AuditLog", {
+  action: { type: DataTypes.STRING(80), allowNull: false },
+  entity: { type: DataTypes.STRING(80), allowNull: false },
+  entityId: { type: DataTypes.STRING(80), allowNull: true },
+  details: { type: DataTypes.TEXT, allowNull: true },
+  ipAddress: { type: DataTypes.STRING(45), allowNull: true }
+});
+
 Order.hasMany(OrderItem, { as: "items", foreignKey: "orderId", onDelete: "CASCADE" });
 OrderItem.belongsTo(Order, { foreignKey: "orderId" });
 MenuItem.hasMany(OrderItem, { foreignKey: "menuItemId" });
@@ -62,6 +70,8 @@ MenuItem.hasMany(InventoryTransaction, { as: "inventoryTransactions", foreignKey
 InventoryTransaction.belongsTo(MenuItem, { foreignKey: "menuItemId" });
 User.hasMany(InventoryTransaction, { as: "inventoryChanges", foreignKey: "changedBy" });
 InventoryTransaction.belongsTo(User, { as: "changedByUser", foreignKey: "changedBy" });
+User.hasMany(AuditLog, { as: "auditLogs", foreignKey: "userId" });
+AuditLog.belongsTo(User, { as: "user", foreignKey: "userId" });
 Order.belongsTo(User, { as: "customer", foreignKey: "customerId" });
 User.hasMany(Order, { as: "orders", foreignKey: "customerId" });
 

@@ -33,7 +33,7 @@ const router = express.Router();
 const asyncHandler = handler => (req, res, next) => Promise.resolve(handler(req, res, next)).catch(next);
 router.get("/", asyncHandler(homePage));
 
-import { loginPage, registerPage, forgotPasswordPage, loginUser, registerUser, logoutUser, profilePage, updateProfile, changeOwnPassword, usersPage, createUser, deleteUser, changeUserPassword, updateUserRole, toggleUserStatus } from "../controllers/authController.js";
+import { loginPage, registerPage, forgotPasswordPage, loginUser, registerUser, logoutUser, profilePage, updateProfile, changeOwnPassword, usersPage, auditLogsPage, createUser, deleteUser, changeUserPassword, updateUserRole, toggleUserStatus } from "../controllers/authController.js";
 
 router.get("/login", loginPage);
 router.post("/login", asyncHandler(loginUser));
@@ -59,6 +59,7 @@ router.get("/orders/:id/confirmation", requireAuth, requireCustomer, asyncHandle
 router.post("/orders/:id/status", requireAuth, requireStaff, asyncHandler(updateOrderStatus));
 router.get("/reports", requireAuth, requireAdmin, asyncHandler(reportsPage));
 router.get("/users", requireAuth, requireAdmin, asyncHandler(usersPage));
+router.get("/audit-logs", requireAuth, requireAdmin, asyncHandler(auditLogsPage));
 router.post("/users", requireAuth, requireAdmin, asyncHandler(createUser));
 router.post("/users/:id/password", requireAuth, requireAdmin, asyncHandler(changeUserPassword));
 router.post("/users/:id/role", requireAuth, requireAdmin, asyncHandler(updateUserRole));
