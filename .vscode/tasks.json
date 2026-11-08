@@ -1,0 +1,110 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Inspect port 3000",
+			"type": "shell",
+			"command": "netstat -ano | findstr :3000",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Check startup syntax",
+			"type": "shell",
+			"command": "node --check index.js; node --check routes/index.js; node --check models/restaurantModel.js; node --check route-cache.js",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "List registered routes again",
+			"type": "shell",
+			"command": "node list-routes.js",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Verify port conflict handling",
+			"type": "shell",
+			"command": "node check-port-conflict.mjs",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Reverify port conflict handling",
+			"type": "shell",
+			"command": "node check-port-conflict.mjs",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Validate RestoFlow UI changes",
+			"type": "shell",
+			"command": "node --check index.js; node --check controllers/homeController.js; node --check controllers/restaurantController.js; node --check routes/index.js; node list-routes.js",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Final RestoFlow validation",
+			"type": "shell",
+			"command": "node --check index.js; node --check controllers/homeController.js; node --check controllers/restaurantController.js; node --check routes/index.js; node --check bin/xian.js; node --check list-routes.js; node list-routes.js",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Validate RestoFlow templates",
+			"type": "shell",
+			"command": "node check-views.mjs; node --check index.js; node --check controllers/homeController.js; node --check controllers/restaurantController.js; node --check routes/index.js",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Initialize ServeSync repository",
+			"type": "shell",
+			"command": "git -C . init -b main; git -C . remote add origin https://github.com/hisuixxx/Draft_EDP.git; git -C . add .; git -C . reset .vscode/tasks.json; git -C . status --short; git -C . diff --cached --stat; git -C . commit -m \"Establish ServeSync application foundation\" -m \"Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>\"",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Commit ServeSync foundation",
+			"type": "shell",
+			"command": "git -C . init -b main; if (-not (git -C . remote)) { git -C . remote add origin https://github.com/hisuixxx/Draft_EDP.git }; git -C . add .; git -C . reset .vscode/tasks.json COMMIT_MESSAGE.txt; git -C . diff --cached --stat; git -C . commit -F COMMIT_MESSAGE.txt; Remove-Item -LiteralPath COMMIT_MESSAGE.txt",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Inspect ServeSync local commit",
+			"type": "shell",
+			"command": "git -C . status --short; git -C . log -1 --oneline; git -C . remote -v",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Create ServeSync foundation commit",
+			"type": "shell",
+			"command": "git -C . -c user.name=hisuixxx -c user.email=hisuixxx@users.noreply.github.com commit -F COMMIT_MESSAGE.txt; if ($LASTEXITCODE -eq 0) { Remove-Item -LiteralPath COMMIT_MESSAGE.txt }",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Commit ServeSync foundation with trailer",
+			"type": "shell",
+			"command": "git -C . -c user.name='hisuixxx' -c user.email='hisuixxx@users.noreply.github.com' commit -m 'Establish ServeSync application foundation' -m 'Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>'",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Inspect ServeSync remote history",
+			"type": "shell",
+			"command": "git -C . status --short; git -C . remote -v; git -C . fetch origin; git -C . branch -vv; git -C . log --oneline --decorate -3",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Commit ServeSync project metadata",
+			"type": "shell",
+			"command": "git -C . add .vscode/tasks.json DEVELOPMENT_LOG.md; git -C . -c user.name='hisuixxx' -c user.email='hisuixxx@users.noreply.github.com' commit -m 'Document ServeSync development workflow' -m 'Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>'",
+			"isBackground": false,
+			"problemMatcher": []
+		}
+	]
+}

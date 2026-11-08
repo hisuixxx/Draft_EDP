@@ -6,7 +6,7 @@
 
 - Confirmed the existing application uses Express, Sequelize, MySQL, `express-session`, `connect-flash`, Multer, and Handlebars-compatible `.xian` views.
 - Confirmed implemented surfaces: registration/login/logout, role guards, menu CRUD and image uploads, cart-backed checkout, transactional orders, order status transitions, dashboards, users, and daily sales reports.
-- Confirmed the project folder is currently inside a parent Git worktree with no commits or configured remote.
+- Confirmed the project folder was initially inside a parent Git worktree with no commits or configured remote; a project-local repository is now used to isolate ServeSync changes.
 
 ### Foundation changes
 
@@ -26,4 +26,4 @@
 
 - Add categories, product variants, inventory transactions, settings, and audit logs.
 - Add profile management, pagination, CSV reports, and complete staff-specific screens.
-- Create a project-local Git history and verify the configured GitHub remote before committing or pushing.
+- Verify remote synchronization after the initial push.
